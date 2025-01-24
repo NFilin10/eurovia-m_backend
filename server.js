@@ -70,7 +70,7 @@ app.post('/add', async (req, res) => {
 });
 
 
-app.get('/get', async (req, res) => {
+app.get('/api/get-prices', async (req, res) => {
     try {
         const categoriesQuery = `
             SELECT c.id AS category_id, c.name AS category_name,
@@ -96,6 +96,7 @@ app.get('/get', async (req, res) => {
                     category_name,
                     headers: [],
                     services: {},
+                    categoryID: category_id
                 };
             }
 
@@ -138,26 +139,53 @@ app.get('/get', async (req, res) => {
 
 app.delete('/delete-service/:id', async (req, res) => {
     const serviceId = req.params.id;
+
     try {
         // Begin a transaction
         await pool.query('BEGIN');
 
+        // Find the category ID associated with the service
+        const categoryResult = await pool.query(
+            'SELECT category_id FROM Services WHERE id = $1',
+            [serviceId]
+        );
+
+        if (categoryResult.rows.length === 0) {
+            throw new Error(`Service with ID ${serviceId} does not exist`);
+        }
+
+        const categoryId = categoryResult.rows[0].category_id;
+
         // Delete prices related to the service
         await pool.query('DELETE FROM Service_attributes WHERE service_id = $1', [serviceId]);
 
-        // Delete the service from the Services table
+        // Delete the service itself
         await pool.query('DELETE FROM Services WHERE id = $1', [serviceId]);
+
+        // Check if any services remain in the category
+        const remainingServicesResult = await pool.query(
+            'SELECT COUNT(*) AS service_count FROM Services WHERE category_id = $1',
+            [categoryId]
+        );
+
+        const remainingServicesCount = parseInt(remainingServicesResult.rows[0].service_count, 10);
+
+        // If no services remain, delete the category
+        if (remainingServicesCount === 0) {
+            await pool.query('DELETE FROM Categories WHERE id = $1', [categoryId]);
+        }
 
         // Commit transaction
         await pool.query('COMMIT');
 
-        res.status(200).json({ message: 'Service deleted successfully' });
+        res.status(200).json({ message: 'Service and associated category (if empty) deleted successfully' });
     } catch (error) {
         await pool.query('ROLLBACK');
         console.error('Error deleting service:', error);
         res.status(500).json({ error: 'Failed to delete service' });
     }
 });
+
 
 
 app.put('/update/:serviceId', async (req, res) => {
@@ -203,6 +231,47 @@ app.put('/update/:serviceId', async (req, res) => {
     }
 });
 
+app.post('/addService', async (req, res) => {
+    const { categoryID, new_service } = req.body;
+
+    const serviceName = Object.values(new_service)[0];
+    const prices = Object.entries(new_service).slice(1)
+    const pricesObj = Object.fromEntries(prices);
+
+    console.log(serviceName);
+    console.log(pricesObj);
+
+
+    if (!categoryID || !new_service) {
+        return res.status(400).json({ error: 'Category name and service data are required' });
+    }
+
+    console.log(new_service);
+    try {
+
+        // Insert the new service into the Services table
+        const insertServiceQuery = 'INSERT INTO services (name, category_id) VALUES ($1, $2) RETURNING id';
+        const serviceResult = await pool.query(insertServiceQuery, [serviceName, categoryID]);
+        const serviceId = serviceResult.rows[0].id;
+
+        // Insert the service attributes (prices) into the Service_attributes table for each header
+        const insertPriceQueries = Object.entries(pricesObj).map(async ([headerId, price]) => {
+            const insertPriceQuery = `
+                INSERT INTO service_attributes (price, service_id, header_id)
+                VALUES ($1, $2, $3)
+            `;
+            await pool.query(insertPriceQuery, [price, serviceId, headerId-1]);
+        });
+
+        // Wait for all price insertions to finish
+        await Promise.all(insertPriceQueries);
+
+        res.status(201).json({ message: 'New service added successfully' });
+    } catch (error) {
+        console.error('Error adding service:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 // Start server
 const PORT = 5000;
