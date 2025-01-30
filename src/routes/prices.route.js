@@ -5,7 +5,7 @@ const authenticate = require('../middlewares/auth.middleware')
 const router = express.Router();
 
 router.post('/add', authenticate, addTable);
-router.get('/api/get-prices',authenticate, getTables);
+router.get('/api/get-prices', getTables);
 router.delete('/delete-service/:id', authenticate, deleteService);
 router.put('/update/:serviceId', authenticate, updateService);
 router.post('/addService', authenticate, addService);
