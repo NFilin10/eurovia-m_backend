@@ -9,7 +9,7 @@ const app = express();
 
 // CORS Options
 const corsOptions = {
-    origin: 'http://localhost:3001', // React frontend URL
+    origin: 'https://eurovia-m.vercel.app', // React frontend URL
     credentials: true,  // Allow credentials (cookies, authorization headers)
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
