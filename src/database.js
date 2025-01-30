@@ -3,11 +3,11 @@ const Pool = require('pg').Pool;
 
 
 const pool = new Pool({
-    user: "postgres",
-    host: "localhost",
-    database: "eurovia-m",
-    password: "9112",
-    port: 5432,
+    user: process.env.USER,
+    host: process.env.HOST,
+    database: process.env.DATABASE,
+    password: process.env.PASSWORD,
+    port: process.env.DB_PORT,
 });
 
 
