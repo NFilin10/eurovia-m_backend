@@ -63,11 +63,12 @@ const login = async (req, res) => {
         if (!validPassword)
             return res.status(401).json({error: "Incorrect password"});
         const token = await generateJWT(user.rows[0].id);
-        res
-            .status(201)
-            .cookie('jwt', token, {maxAge: 6000000, httpOnly: true})
-            .json({user_id: user.rows[0].id})
-            .send;
+        res.cookie('jwt', token, {
+            maxAge: 6000000,
+            httpOnly: true,
+            secure: true,  // Ensure it's only secure in production
+            sameSite: "None",  // Allow cross-origin cookies
+        });
     } catch (error) {
         res
             .status(401)
