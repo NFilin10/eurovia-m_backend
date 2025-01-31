@@ -42,13 +42,11 @@ const signup = async (req, res) => {
             "INSERT INTO users(email, password, name, surname) values ($1, $2, $3, $4) RETURNING*",
             [email, bcryptPassword, name, surname]);
         const token = await generateJWT(authUser.rows[0].id);
-        res.cookie('jwt', token, {
-            maxAge: 6000000,
-            httpOnly: true,
-            secure: true,  // Ensure it's only secure in production
-            sameSite: "None",  // Allow cross-origin cookies
-        });
-
+        res
+            .status(201)
+            .cookie('jwt', token, { maxAge: 6000000, httpOnly: true })
+            .json({ user_id: authUser.rows[0].id })
+            .send;
     } catch (err) {res.status(400).send(err.message);}
 }
 
@@ -63,12 +61,11 @@ const login = async (req, res) => {
         if (!validPassword)
             return res.status(401).json({error: "Incorrect password"});
         const token = await generateJWT(user.rows[0].id);
-        res.cookie('jwt', token, {
-            maxAge: 6000000,
-            httpOnly: false,
-            // secure: true,  // Ensure it's only secure in production
-            sameSite: "None",  // Allow cross-origin cookies
-        });
+        res
+            .status(201)
+            .cookie('jwt', token, {maxAge: 6000000, httpOnly: true})
+            .json({user_id: user.rows[0].id})
+            .send;
     } catch (error) {
         res
             .status(401)
