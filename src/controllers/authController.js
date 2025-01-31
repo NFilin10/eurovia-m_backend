@@ -45,7 +45,7 @@ const signup = async (req, res) => {
         res.cookie('jwt', token, {
             maxAge: 6000000,
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",  // Ensure it's only secure in production
+            secure: true,  // Ensure it's only secure in production
             sameSite: "None",  // Allow cross-origin cookies
         });
 
