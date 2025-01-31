@@ -42,11 +42,13 @@ const signup = async (req, res) => {
             "INSERT INTO users(email, password, name, surname) values ($1, $2, $3, $4) RETURNING*",
             [email, bcryptPassword, name, surname]);
         const token = await generateJWT(authUser.rows[0].id);
-        res
-            .status(201)
-            .cookie('jwt', token, { maxAge: 6000000, httpOnly: true })
-            .json({ user_id: authUser.rows[0].id })
-            .send;
+        res.cookie('jwt', token, {
+            maxAge: 6000000,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",  // Ensure it's only secure in production
+            sameSite: "None",  // Allow cross-origin cookies
+        });
+
     } catch (err) {res.status(400).send(err.message);}
 }
 
