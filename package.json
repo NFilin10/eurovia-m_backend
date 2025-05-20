@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start": "node ./src/server.js"
+    "start": "node ./src/server.js",
+    "postinstall": "npm rebuild bcrypt --build-from-source"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
